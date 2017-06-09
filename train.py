@@ -23,10 +23,10 @@ def download_datasets():
     Checks to see if all the datasets are present. If not, it downloads and unzips them. 
     """
     datasets = {
-        "HWDB1.0trn": "url",
-        "HWDB1.0tst": "url",
-        "OLHWDB1.0trn": "url",
-        "OLHWDB1.0tst": "url"
+        "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
+        "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
+        "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
+        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip"
     }
 
     was_error = False
@@ -52,8 +52,12 @@ def download_datasets():
                 was_error = True
 
     if was_error:
-        print("\nThis recognizer is trained by the CASIA handwriting database. "
+        print("\nThis recognizer is trained by the CASIA handwriting database. " +
               "If the download doesn't work, you can get the files at nlpr.ia.ac.cn")
+
+
+def load_datasets():
+    pass
 
 
 def main():
