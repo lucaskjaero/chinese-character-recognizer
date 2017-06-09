@@ -39,7 +39,7 @@ def get_datasets():
 
             if was_error:
                 print("\nThis recognizer is trained by the CASIA handwriting database. " +
-                "If the download doesn't work, you can get the files at nlpr.ia.ac.cn")
+                      "If the download doesn't work, you can get the files at nlpr.ia.ac.cn")
 
 
 def get_dataset(dataset):
