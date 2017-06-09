@@ -108,3 +108,6 @@ ENV/
 # Training data
 HWDB1*
 OLHWDB1*
+competition-dgr.zip
+competition-gnt.zip
+*.dgr
