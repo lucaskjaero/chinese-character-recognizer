@@ -101,10 +101,13 @@ def load_gnt_file(filename):
             break
 
         length = struct.unpack("<I", packed_length)[0]
-        label = struct.unpack(">H", f.read(2))[0]
+        raw_label = struct.unpack(">cc", f.read(2))
         width = struct.unpack("<H", f.read(2))[0]
         height = struct.unpack("<H", f.read(2))[0]
         bytes = struct.unpack("{}B".format(height * width), f.read(height * width))
+
+        # Comes out as a tuple of chars. Need to be combined. Encoded as gb2312, gotta convert to unicode.
+        label = decode(raw_label[0] + raw_label[1], encoding="gb2312")
 
         existing_labels = full_data.keys()
         if (label in existing_labels) or (len(existing_labels) < num_classes):
@@ -124,10 +127,8 @@ def load_datasets():
     data = load_gnt_file(path)
     for key in data.keys():
         image = data[key][0]
-        character = bytearray(key)
-        print(character)
-        print(decode(character, encoding="gb2312"))
-        #toimage(image).show()
+        print(key)
+        toimage(image).show()
 
     return data
 
