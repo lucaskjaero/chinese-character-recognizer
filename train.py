@@ -1,18 +1,29 @@
-from urllib.request import urlretrieve
+from collections import defaultdict
+from codecs import decode, encode
+import glob
 from os.path import isfile, isdir
 from os import remove
+import struct
+from urllib.request import urlretrieve
 import zipfile
+
+import numpy as np
+import scipy
+
+from scipy.misc import toimage
 
 from tqdm import tqdm
 
 __author__ = 'Lucas Kjaero'
 
-datasets = {
+DATASETS = {
         "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
         "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
         "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
         "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip"
     }
+
+SIDE = 224
 
 
 class DLProgress(tqdm):
@@ -27,7 +38,7 @@ class DLProgress(tqdm):
 
 
 def get_datasets():
-    for dataset in datasets:
+    for dataset in DATASETS:
         # If the dataset is present, no need to download anything.
         if not isdir(dataset):
 
@@ -53,7 +64,7 @@ def get_dataset(dataset):
     if not isfile(zip_path):
         try:
             with DLProgress(unit='B', unit_scale=True, miniters=1, desc=dataset) as pbar:
-                urlretrieve(datasets[dataset], zip_path, pbar.hook)
+                urlretrieve(DATASETS[dataset], zip_path, pbar.hook)
         except Exception as ex:
             print("Error downloading %s: %s" % (dataset, ex))
             was_error = True
@@ -73,12 +84,57 @@ def get_dataset(dataset):
     return was_error
 
 
+def load_gnt_file(filename):
+    # Keys are in GB2312
+
+    print("Loading file: %s" % filename)
+
+    f = open(filename, "rb")
+
+    full_data = defaultdict(lambda: [])
+
+    num_classes = 8
+
+    while True:
+        packed_length = f.read(4)
+        if packed_length == b'':
+            break
+
+        length = struct.unpack("<I", packed_length)[0]
+        label = struct.unpack(">H", f.read(2))[0]
+        width = struct.unpack("<H", f.read(2))[0]
+        height = struct.unpack("<H", f.read(2))[0]
+        bytes = struct.unpack("{}B".format(height * width), f.read(height * width))
+
+        existing_labels = full_data.keys()
+        if (label in existing_labels) or (len(existing_labels) < num_classes):
+            image = np.array(bytes).reshape(height, width)
+            #image = scipy.misc.imresize(image, (SIDE, SIDE))
+            #image = (image.astype(float) / 256) - 0.5  # normalize to [-0.5,0.5] to avoid saturation
+            # TODO: should also invert image so convolutional zero-padding doesn't add a "border"?
+            full_data[label].append(image)
+
+    f.close()
+
+    return full_data
+
+
 def load_datasets():
-    pass
+    path = "competition-gnt/C001-f-f.gnt"
+    data = load_gnt_file(path)
+    for key in data.keys():
+        image = data[key][0]
+        character = bytearray(key)
+        print(character)
+        print(decode(character, encoding="gb2312"))
+        #toimage(image).show()
+
+    return data
 
 
 def main():
-    get_datasets()
+    #get_datasets()
+    load_datasets()
 
 if __name__ == '__main__':
     main()
