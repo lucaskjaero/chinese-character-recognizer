@@ -20,7 +20,9 @@ DATASETS = {
         "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
         "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
         "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
-        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip"
+        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip",
+        "HWDB1.1trn_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1trn_gnt.zip",
+        "HWDB1.1tst_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip"
     }
 
 
@@ -88,10 +90,10 @@ def load_datasets():
 
     # full_data = defaultdict(lambda: [])
     keys = []
-    for label, image in load_gnt_dir("competition-gnt"):
+    for label, image in load_gnt_dir("HWDB1.1trn_gnt"):
         keys.append(label)
         # Image is PIL.Image.Image
-        output_image(label, image)
+        # output_image(label, image)
 
     labels = set(keys)
     print("%s unique labels:" % len(labels))

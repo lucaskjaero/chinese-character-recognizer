@@ -105,11 +105,16 @@ ENV/
 .idea/*
 .idea/vcs.xml
 
-# Training data
+# Training data zip files
 HWDB1*
 OLHWDB1*
 competition-dgr.zip
 competition-gnt.zip
+
+# Training data filetypes
 *.dgr
 *.gnt
+*.mpf
+
+# Staging area for unzipped samples
 raw/*
