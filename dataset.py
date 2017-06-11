@@ -10,6 +10,8 @@ from urllib.request import urlretrieve
 
 import numpy as np
 
+from pandas import DataFrame
+
 from scipy.misc import toimage
 
 from tqdm import tqdm
@@ -17,13 +19,16 @@ from tqdm import tqdm
 from preprocessing import process_image
 
 DATASETS = {
-        "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
-        "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
         "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
-        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip",
         "HWDB1.1trn_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1trn_gnt.zip",
         "HWDB1.1tst_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip"
     }
+
+UNUSED_DATASETS = {
+        "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
+        "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
+        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip"
+}
 
 
 class DLProgress(tqdm):
@@ -49,8 +54,9 @@ def get_datasets():
                     was_error = get_dataset(dataset)
 
             if was_error:
-                print("\nThis recognizer is trained by the CASIA handwriting database. " +
-                      "If the download doesn't work, you can get the files at nlpr.ia.ac.cn")
+                print("\nThis recognizer is trained by the CASIA handwriting database.")
+                print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset])
+                print("If you have GFW problems, wget may be effective at downloading.")
 
 
 def get_dataset(dataset):
@@ -86,14 +92,15 @@ def get_dataset(dataset):
 
 def load_datasets():
     # Just make sure the data is there. If not, this will download them.
-    get_datasets()
+    # get_datasets()
 
     # full_data = defaultdict(lambda: [])
     keys = []
-    for label, image in load_gnt_dir("HWDB1.1trn_gnt"):
+    dimensions = []
+    for label, image in load_gnt_dir("competition-gnt"):
         keys.append(label)
         # Image is PIL.Image.Image
-        # output_image(label, image)
+        # output_image("HWDB1.1trn_gnt", label, image)
 
     labels = set(keys)
     print("%s unique labels:" % len(labels))
@@ -135,7 +142,7 @@ def load_gnt_file(filename):
             yield (label, image)
 
 
-def output_image(label, image):
+def output_image(prefix, label, image):
     if not isdir(label):
         makedirs(label)
-    image.save("raw/%s/%s.jpg" % (label, clock()))
+    image.save("raw/%s/%s/%s.jpg" % (prefix, label, clock()))
