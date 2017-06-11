@@ -8,7 +8,6 @@ SIDE = 224
 
 
 def main():
-    get_datasets()
     load_datasets()
 
 if __name__ == '__main__':

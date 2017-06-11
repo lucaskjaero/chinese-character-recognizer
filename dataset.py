@@ -3,8 +3,9 @@ import struct
 import zipfile
 
 from codecs import decode
+from os import makedirs, remove
 from os.path import isfile, isdir
-from os import remove
+from time import clock
 from urllib.request import urlretrieve
 
 import numpy as np
@@ -82,11 +83,15 @@ def get_dataset(dataset):
 
 
 def load_datasets():
+    # Just make sure the data is there. If not, this will download them.
+    get_datasets()
+
     # full_data = defaultdict(lambda: [])
     keys = []
     for label, image in load_gnt_dir("competition-gnt"):
         keys.append(label)
         # Image is PIL.Image.Image
+        output_image(label, image)
 
     labels = set(keys)
     print("%s unique labels:" % len(labels))
@@ -126,3 +131,9 @@ def load_gnt_file(filename):
             image = toimage(np.array(bytes).reshape(height, width))
 
             yield (label, image)
+
+
+def output_image(label, image):
+    if not isdir(label):
+        makedirs(label)
+    image.save("raw/%s/%s.jpg" % (label, clock()))
