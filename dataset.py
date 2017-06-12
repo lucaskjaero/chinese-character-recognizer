@@ -18,9 +18,11 @@ from tqdm import tqdm
 
 from preprocessing import process_image
 
+__author__ = 'Lucas Kjaero'
+
 DATASETS = {
+        # "HWDB1.1trn_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1trn_gnt.zip",
         "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
-        "HWDB1.1trn_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1trn_gnt.zip",
         "HWDB1.1tst_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip"
     }
 
@@ -92,11 +94,8 @@ def get_dataset(dataset):
 
 def load_datasets():
     # Just make sure the data is there. If not, this will download them.
-    # get_datasets()
-
-    # full_data = defaultdict(lambda: [])
+    get_datasets()
     keys = []
-    dimensions = []
     for label, image in load_gnt_dir("competition-gnt"):
         keys.append(label)
         # Image is PIL.Image.Image
