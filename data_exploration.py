@@ -11,7 +11,7 @@ def identity_function(image):
 
 
 def display_label(label, transform=identity_function):
-    base = "raw/%s/" % label
+    base = "raw/competition-gnt/%s/" % label
     for path in glob.glob(base + "*.jpg"):
         pil_image = transform(Pil.open(path))
 

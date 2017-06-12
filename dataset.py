@@ -173,6 +173,12 @@ def output_image(prefix, label, image):
     :param image: The image file.
     :return: nothing.
     """
-    if not isdir(label):
-        makedirs(label)
-    image.save("raw/%s/%s/%s.jpg" % (prefix, label, clock()))
+    prefix_path = "raw/" + prefix
+    if not isdir(prefix_path):
+        makedirs(prefix_path)
+
+    label_path = prefix_path + "/" + label
+    if not isdir(label_path):
+        makedirs(label_path)
+
+    image.save(label_path + "/%s.jpg" % clock())
