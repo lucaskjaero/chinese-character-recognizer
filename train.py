@@ -4,7 +4,8 @@ __author__ = 'Lucas Kjaero'
 
 
 def main():
-    load_datasets()
+    for label, image in load_datasets(purpose="train"):
+        pass
 
 if __name__ == '__main__':
     main()

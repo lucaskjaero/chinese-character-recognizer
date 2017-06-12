@@ -14,29 +14,22 @@ from scipy.misc import toimage
 
 from tqdm import tqdm
 
-from preprocessing import process_image
-
 __author__ = 'Lucas Kjaero'
 
 DATASETS = {
         "competition-gnt": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
                             "purpose": "explore"},
+
+        "HWDB1.1tst_gnt": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
+                            "purpose": "test"},
         "HWDB1.1trn_gnt_P1": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P1.zip",
                             "purpose": "train"},
         "HWDB1.1trn_gnt_P2": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P2.zip",
-                            "purpose": "train"},
-        "HWDB1.1tst_gnt": {
-                            "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
-                            "purpose": "test"}
-}
-
-UNUSED_DATASETS = {
-        "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
-        "HWDB1.0tst": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0tst.zip",
-        "competition-dgr": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-dgr.zip"
+                            "purpose": "train"}
 }
 
 
@@ -57,6 +50,8 @@ def get_datasets():
     Attempts the download five times because the file hosting is unreliable. 
     :return: 
     """
+    success = True
+
     for dataset in DATASETS:
         # If the dataset is present, no need to download anything.
         if not isdir(dataset):
@@ -71,6 +66,9 @@ def get_datasets():
                 print("\nThis recognizer is trained by the CASIA handwriting database.")
                 print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset]["url"])
                 print("If you have GFW problems, wget may be effective at downloading.")
+                success = False
+
+    return success
 
 
 def get_dataset(dataset):
@@ -104,23 +102,20 @@ def get_dataset(dataset):
     return was_error
 
 
-def load_datasets():
+def load_datasets(purpose="explore"):
     """
-    Loads the datasets from their files and begins processing. Final behavior still being determined.
-    :return: 
+    Generator loading all images in the dataset for the given purpose. Uses exploration data if nothing specified.
+    :param purpose: Data purpose. Options are "explore", "train", and "test". Default is explore.
+    :return: Yields (label, image) tuples. 
     """
     # Just make sure the data is there. If not, this will download them.
-    get_datasets()
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
 
-    keys = []
-    for label, image in load_gnt_dir("HWDB1.1tst_gnt"):
-        keys.append(label)
-        # Image is PIL.Image.Image
-        output_image("HWDB1.1tst_gnt", label, image)
+    paths = [path for path in DATASETS if DATASETS[path]["purpose"] == purpose]
 
-    labels = set(keys)
-    print("\n%s unique labels:" % len(labels))
-    print(labels)
+    for path in paths:
+        for label, image in load_gnt_dir(path):
+            yield label, image
 
 
 def load_gnt_dir(dataset_path):
@@ -161,6 +156,25 @@ def load_gnt_file(filename):
             image = toimage(np.array(bytes).reshape(height, width))
 
             yield (label, image)
+
+
+def get_all_raw():
+    """
+    Used to create easily introspectable image directories of all the data.
+    :return: 
+    """
+    for dataset in DATASETS:
+        get_raw(dataset)
+
+
+def get_raw(path):
+    """
+    Creates an easily introspectable image directory for a given dataset.
+    :param path: The dataset to get.
+    :return: None
+    """
+    for label, image in load_gnt_dir(path):
+        output_image(path, label, image)
 
 
 def output_image(prefix, label, image):
