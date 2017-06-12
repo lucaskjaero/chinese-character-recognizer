@@ -1,10 +1,6 @@
-from collections import defaultdict
-
-from dataset import get_datasets, load_datasets
+from dataset import load_datasets
 
 __author__ = 'Lucas Kjaero'
-
-SIDE = 224
 
 
 def main():

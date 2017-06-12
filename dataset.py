@@ -10,8 +10,6 @@ from urllib.request import urlretrieve
 
 import numpy as np
 
-from pandas import DataFrame
-
 from scipy.misc import toimage
 
 from tqdm import tqdm
@@ -21,10 +19,19 @@ from preprocessing import process_image
 __author__ = 'Lucas Kjaero'
 
 DATASETS = {
-        # "HWDB1.1trn_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1trn_gnt.zip",
-        "competition-gnt": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
-        "HWDB1.1tst_gnt": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip"
-    }
+        "competition-gnt": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
+                            "purpose": "explore"},
+        "HWDB1.1trn_gnt_P1": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P1.zip",
+                            "purpose": "train"},
+        "HWDB1.1trn_gnt_P2": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P2.zip",
+                            "purpose": "train"},
+        "HWDB1.1tst_gnt": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
+                            "purpose": "test"}
+}
 
 UNUSED_DATASETS = {
         "HWDB1.0trn": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.0trn.zip",
@@ -45,6 +52,11 @@ class DLProgress(tqdm):
 
 
 def get_datasets():
+    """
+    Make sure the datasets are present. If not, downloads and extracts them.
+    Attempts the download five times because the file hosting is unreliable. 
+    :return: 
+    """
     for dataset in DATASETS:
         # If the dataset is present, no need to download anything.
         if not isdir(dataset):
@@ -57,7 +69,7 @@ def get_datasets():
 
             if was_error:
                 print("\nThis recognizer is trained by the CASIA handwriting database.")
-                print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset])
+                print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset]["url"])
                 print("If you have GFW problems, wget may be effective at downloading.")
 
 
@@ -72,7 +84,7 @@ def get_dataset(dataset):
     if not isfile(zip_path):
         try:
             with DLProgress(unit='B', unit_scale=True, miniters=1, desc=dataset) as pbar:
-                urlretrieve(DATASETS[dataset], zip_path, pbar.hook)
+                urlretrieve(DATASETS[dataset]["url"], zip_path, pbar.hook)
         except Exception as ex:
             print("Error downloading %s: %s" % (dataset, ex))
             was_error = True
@@ -93,20 +105,30 @@ def get_dataset(dataset):
 
 
 def load_datasets():
+    """
+    Loads the datasets from their files and begins processing. Final behavior still being determined.
+    :return: 
+    """
     # Just make sure the data is there. If not, this will download them.
     get_datasets()
+
     keys = []
-    for label, image in load_gnt_dir("competition-gnt"):
+    for label, image in load_gnt_dir("HWDB1.1tst_gnt"):
         keys.append(label)
         # Image is PIL.Image.Image
-        # output_image("HWDB1.1trn_gnt", label, image)
+        output_image("HWDB1.1tst_gnt", label, image)
 
     labels = set(keys)
-    print("%s unique labels:" % len(labels))
+    print("\n%s unique labels:" % len(labels))
     print(labels)
 
 
 def load_gnt_dir(dataset_path):
+    """
+    Load a directory of gnt files. Yields the image and label in tuples.
+    :param dataset_path: The directory to search in. 
+    :return:  Yields (label, image) pairs
+    """
     for path in glob.glob(dataset_path + "/*.gnt"):
         for label, image in load_gnt_file(path):
             yield label, image
@@ -142,6 +164,15 @@ def load_gnt_file(filename):
 
 
 def output_image(prefix, label, image):
+    """
+    Exports images into files. Organized by dataset / label / image.
+    Stored in the raw directory.
+    Saves the image with a name of the current time in seconds. This is to prevent two filenames from being the same.
+    :param prefix: The name of the dataset to save the images under. 
+    :param label: The character the image represents/
+    :param image: The image file.
+    :return: nothing.
+    """
     if not isdir(label):
         makedirs(label)
     image.save("raw/%s/%s/%s.jpg" % (prefix, label, clock()))
