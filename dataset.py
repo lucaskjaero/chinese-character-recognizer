@@ -109,7 +109,7 @@ def load_datasets(purpose="train"):
     """
     Generator loading all images in the dataset for the given purpose. Uses training data if nothing specified.
     :param purpose: Data purpose. Options are "train" and "test". Default is train.
-    :return: Yields (label, image) tuples. Pillow.Image.Image
+    :return: Yields (image, label) tuples. Pillow.Image.Image
     """
     # Just make sure the data is there. If not, this will download them.
     assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
@@ -117,19 +117,19 @@ def load_datasets(purpose="train"):
     paths = [path for path in DATASETS if DATASETS[path]["purpose"] == purpose]
 
     for path in paths:
-        for label, image in load_gnt_dir(path):
-            yield label, image
+        for image, label in load_gnt_dir(path):
+            yield image, label
 
 
 def load_gnt_dir(dataset_path):
     """
     Load a directory of gnt files. Yields the image and label in tuples.
     :param dataset_path: The directory to search in.
-    :return:  Yields (label, image) pairs
+    :return:  Yields (image, label) pairs
     """
     for path in glob.glob(dataset_path + "/*.gnt"):
-        for label, image in load_gnt_file(path):
-            yield label, image
+        for image, label in load_gnt_file(path):
+            yield image, label
 
 
 def load_gnt_file(filename):
@@ -158,7 +158,7 @@ def load_gnt_file(filename):
             # Create an array of bytes for the image, match it to the proper dimensions, and turn it into a PIL image.
             image = toimage(np.array(photo_bytes).reshape(height, width))
 
-            yield label, image
+            yield image, label
 
 
 def dataset_count(purpose="train"):
@@ -215,26 +215,26 @@ def train_set(split_percentage=0.2):
     """
     A generator to load all the images in the training set.
     :param split_percentage: The percentage of data to use for testing.
-    :return: Yields (label, image) tuples of String, Pillow.Image.Image
+    :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
     train, test = test_train_split(split_percentage)
 
     for file in train:
-        for label, image in load_gnt_file(file):
-            yield label, image
+        for image, label in load_gnt_file(file):
+            yield image, label
 
 
 def test_set(split_percentage=0.2):
     """
         A generator to load all the images in the testing set. Use this during training to verify models.
         :param split_percentage: The percentage of data to use for testing.
-        :return: Yields (label, image) tuples of String, Pillow.Image.Image
+        :return: Yields (image, label) tuples of String, Pillow.Image.Image
         """
     train, test = test_train_split(split_percentage)
 
     for file in test:
-        for label, image in load_gnt_file(file):
-            yield label, image
+        for image, label in load_gnt_file(file):
+            yield image, label
 
 
 def validation_set():
@@ -242,11 +242,11 @@ def validation_set():
     A generator to load all the images in the validation set.
     Don't touch this until you are evaluating the final model.
     If you use this to inform your model building, you will have a much higher chance of overfitting.
-    :return: Yields (label, image) tuples of String, Pillow.Image.Image
+    :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
     for dataset in TESTING_SETS:
-        for label, image in load_gnt_dir(dataset):
-            yield label, image
+        for image, label in load_gnt_dir(dataset):
+            yield image, label
 
 
 def get_all_raw():
@@ -264,11 +264,11 @@ def get_raw(path):
     :param path: The dataset to get.
     :return: None
     """
-    for label, image in load_gnt_dir(path):
-        output_image(path, label, image)
+    for image, label in load_gnt_dir(path):
+        output_image(path, image, label)
 
 
-def output_image(prefix, label, image):
+def output_image(prefix, image, label):
     """
     Exports images into files. Organized by dataset / label / image.
     Stored in the raw directory.
