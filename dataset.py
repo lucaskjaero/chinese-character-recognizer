@@ -19,17 +19,16 @@ __author__ = 'Lucas Kjaero'
 DATASETS = {
         "competition-gnt": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/competition/competition-gnt.zip",
-                            "purpose": "explore"},
-
-        "HWDB1.1tst_gnt": {
-                            "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
-                            "purpose": "test"},
+                            "purpose": "train"},
         "HWDB1.1trn_gnt_P1": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P1.zip",
                             "purpose": "train"},
         "HWDB1.1trn_gnt_P2": {
                             "url": "http://www.nlpr.ia.ac.cn/databases/Download/feature_data/HWDB1.1trn_gnt_P2.zip",
-                            "purpose": "train"}
+                            "purpose": "train"},
+        "HWDB1.1tst_gnt": {
+                            "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
+                            "purpose": "test"}
 }
 
 
@@ -47,8 +46,8 @@ class DLProgress(tqdm):
 def get_datasets():
     """
     Make sure the datasets are present. If not, downloads and extracts them.
-    Attempts the download five times because the file hosting is unreliable. 
-    :return: 
+    Attempts the download five times because the file hosting is unreliable.
+    :return:
     """
     success = True
 
@@ -102,11 +101,11 @@ def get_dataset(dataset):
     return was_error
 
 
-def load_datasets(purpose="explore"):
+def load_datasets(purpose="train"):
     """
     Generator loading all images in the dataset for the given purpose. Uses exploration data if nothing specified.
-    :param purpose: Data purpose. Options are "explore", "train", and "test". Default is explore.
-    :return: Yields (label, image) tuples. 
+    :param purpose: Data purpose. Options are "train" and "test". Default is train.
+    :return: Yields (label, image) tuples.
     """
     # Just make sure the data is there. If not, this will download them.
     assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
@@ -121,7 +120,7 @@ def load_datasets(purpose="explore"):
 def load_gnt_dir(dataset_path):
     """
     Load a directory of gnt files. Yields the image and label in tuples.
-    :param dataset_path: The directory to search in. 
+    :param dataset_path: The directory to search in.
     :return:  Yields (label, image) pairs
     """
     for path in glob.glob(dataset_path + "/*.gnt"):
@@ -148,12 +147,12 @@ def load_gnt_file(filename):
             raw_label = struct.unpack(">cc", f.read(2))
             width = struct.unpack("<H", f.read(2))[0]
             height = struct.unpack("<H", f.read(2))[0]
-            bytes = struct.unpack("{}B".format(height * width), f.read(height * width))
+            photo_bytes = struct.unpack("{}B".format(height * width), f.read(height * width))
 
             # Comes out as a tuple of chars. Need to be combined. Encoded as gb2312, gotta convert to unicode.
             label = decode(raw_label[0] + raw_label[1], encoding="gb2312")
             # Create an array of bytes for the image, match it to the proper dimensions, and turn it into a PIL image.
-            image = toimage(np.array(bytes).reshape(height, width))
+            image = toimage(np.array(photo_bytes).reshape(height, width))
 
             yield (label, image)
 
@@ -161,7 +160,7 @@ def load_gnt_file(filename):
 def get_all_raw():
     """
     Used to create easily introspectable image directories of all the data.
-    :return: 
+    :return:
     """
     for dataset in DATASETS:
         get_raw(dataset)
@@ -182,7 +181,7 @@ def output_image(prefix, label, image):
     Exports images into files. Organized by dataset / label / image.
     Stored in the raw directory.
     Saves the image with a name of the current time in seconds. This is to prevent two filenames from being the same.
-    :param prefix: The name of the dataset to save the images under. 
+    :param prefix: The name of the dataset to save the images under.
     :param label: The character the image represents/
     :param image: The image file.
     :return: nothing.
