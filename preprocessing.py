@@ -5,7 +5,14 @@ __author__ = 'Lucas Kjaero'
 SCALED_HEIGHT = 75
 SCALED_WIDTH = 75
 
+
+def no_processing(image):
+    return np.array(image)
+
+
 def process_image(image):
+    assert type(image) == "PIL.Image.Image", "image is not the correct type. "
+
     # Resize image to average size
     resized_image = image.resize((SCALED_WIDTH, SCALED_HEIGHT))
 

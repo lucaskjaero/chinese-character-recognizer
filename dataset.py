@@ -15,6 +15,8 @@ from scipy.misc import toimage
 
 from tqdm import tqdm
 
+from preprocessing import no_processing, process_image
+
 __author__ = 'Lucas Kjaero'
 
 DATASETS = {
@@ -68,7 +70,7 @@ def get_datasets():
             if was_error:
                 print("\nThis recognizer is trained by the CASIA handwriting database.")
                 print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset]["url"])
-                print("If you have GFW problems, wget may be effective at downloading.")
+                print("If you have download problems, wget may be effective at downloading because of download resuming.")
                 success = False
 
     return success
@@ -132,11 +134,12 @@ def load_gnt_dir(dataset_path):
             yield image, label
 
 
-def load_gnt_file(filename):
+def load_gnt_file(filename, preprocess=no_processing):
     """
-    Generator yielding all characters and images from a given GNT file.
+    Load characters and images from a given GNT file.
     :param filename: The file path to load.
-    :return: (character, image) tuples
+    :param preprocess: A function to do any preprocessing. Default is no processing.
+    :return: (image: np.array, character) tuples
     """
     print("Loading file: %s" % filename)
 
@@ -157,8 +160,9 @@ def load_gnt_file(filename):
             label = decode(raw_label[0] + raw_label[1], encoding="gb2312")
             # Create an array of bytes for the image, match it to the proper dimensions, and turn it into a PIL image.
             image = toimage(np.array(photo_bytes).reshape(height, width))
+            processed_image = preprocess(image)
 
-            yield image, label
+            yield processed_image, label
 
 
 def dataset_count(purpose="train"):
@@ -192,6 +196,8 @@ def test_train_split(split_percentage=0.2):
     train_files = []
     test_files = []
 
+    #TODO implement k-fold cross-validation
+
     for dataset in TRAINING_SETS:
         count = data_count(dataset)
         training_count = ceil((1 - split_percentage) * count)
@@ -211,17 +217,33 @@ def test_train_split(split_percentage=0.2):
     return train_files, test_files
 
 
-def train_set(split_percentage=0.2):
+def train_set_sample_count(split_percentage=0.2):
+    train, test = test_train_split()
+    count = 0
+    for file in train:
+        for image, label in load_gnt_file(file):
+            count += 1
+    return count
+
+
+def train_set(split_percentage=0.2, infinite=True):
     """
-    A generator to load all the images in the training set.
+    A generator to load all the images in the training set. Loads data infinitely.
     :param split_percentage: The percentage of data to use for testing.
+    :param infinite: Whether to load data infinitely. If false, loads each image once and then stops.
     :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
     train, test = test_train_split(split_percentage)
 
-    for file in train:
-        for image, label in load_gnt_file(file):
-            yield image, label
+    if infinite:
+        while True:
+            for file in train:
+                for image, label in load_gnt_file(file, preprocess=process_image):
+                    yield image, label
+    else:
+        for file in train:
+            for image, label in load_gnt_file(file, preprocess=process_image):
+                yield image, label
 
 
 def test_set(split_percentage=0.2):
@@ -233,7 +255,7 @@ def test_set(split_percentage=0.2):
     train, test = test_train_split(split_percentage)
 
     for file in test:
-        for image, label in load_gnt_file(file):
+        for image, label in load_gnt_file(file, preprocess=process_image):
             yield image, label
 
 
@@ -245,7 +267,7 @@ def validation_set():
     :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
     for dataset in TESTING_SETS:
-        for image, label in load_gnt_dir(dataset):
+        for image, label in load_gnt_dir(dataset, preprocess=process_image):
             yield image, label
 
 
@@ -278,6 +300,8 @@ def output_image(prefix, image, label):
     :param image: The image file.
     :return: nothing.
     """
+    assert type(image) == "PIL.Image.Image", "image is not the correct type. "
+
     prefix_path = "raw/" + prefix
     if not isdir(prefix_path):
         makedirs(prefix_path)
