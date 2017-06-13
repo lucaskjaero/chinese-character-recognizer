@@ -1,11 +1,11 @@
-from dataset import load_datasets
+from dataset import train_set, test_set, validation_set
 
 __author__ = 'Lucas Kjaero'
 
 
 def main():
-    for label, image in load_datasets(purpose="train"):
-        pass
+    for label, image in train_set():
+       pass
 
 if __name__ == '__main__':
     main()

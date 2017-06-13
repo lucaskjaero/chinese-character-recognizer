@@ -3,8 +3,9 @@ import struct
 import zipfile
 
 from codecs import decode
-from os import makedirs, remove
-from os.path import isfile, isdir
+from math import ceil
+from os import listdir, makedirs, remove
+from os.path import isdir, isfile
 from time import clock
 from urllib.request import urlretrieve
 
@@ -30,6 +31,9 @@ DATASETS = {
                             "url": "http://www.nlpr.ia.ac.cn/databases/download/feature_data/HWDB1.1tst_gnt.zip",
                             "purpose": "test"}
 }
+
+TRAINING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "train"]
+TESTING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "test"]
 
 
 class DLProgress(tqdm):
@@ -103,9 +107,9 @@ def get_dataset(dataset):
 
 def load_datasets(purpose="train"):
     """
-    Generator loading all images in the dataset for the given purpose. Uses exploration data if nothing specified.
+    Generator loading all images in the dataset for the given purpose. Uses training data if nothing specified.
     :param purpose: Data purpose. Options are "train" and "test". Default is train.
-    :return: Yields (label, image) tuples.
+    :return: Yields (label, image) tuples. Pillow.Image.Image
     """
     # Just make sure the data is there. If not, this will download them.
     assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
@@ -154,7 +158,95 @@ def load_gnt_file(filename):
             # Create an array of bytes for the image, match it to the proper dimensions, and turn it into a PIL image.
             image = toimage(np.array(photo_bytes).reshape(height, width))
 
-            yield (label, image)
+            yield label, image
+
+
+def dataset_count(purpose="train"):
+    """
+    Get the file count for a particular set of datasets. Used for a test-train split.
+    :param purpose: Which set to use
+    :return: The count of files in the dataset.
+    """
+    count = 0
+    for dataset in [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == purpose]:
+        count += data_count(dataset)
+    return count
+
+
+def data_count(dataset):
+    """
+    Gets the count of files in an individual dataset.
+    :param dataset: The path of the dataset.
+    :return: The count
+    """
+    path = dataset + "/"
+    return len([name for name in listdir(path)])
+
+
+def test_train_split(split_percentage=0.2):
+    """
+    Partition the files in the dataset into train and test.
+    :param split_percentage: The percentage to split on.
+    :return: Two lists of filenames containing the set. Train, test.
+    """
+    train_files = []
+    test_files = []
+
+    for dataset in TRAINING_SETS:
+        count = data_count(dataset)
+        training_count = ceil((1 - split_percentage) * count)
+        testing_count = count - training_count
+
+        paths = [dataset + "/" + path for path in listdir(dataset)]
+
+        train = paths[0:training_count]
+        test = paths[training_count:]
+
+        assert len(train) == training_count
+        assert len(test) == testing_count
+
+        train_files.extend(train)
+        test_files.extend(test)
+
+    return train_files, test_files
+
+
+def train_set(split_percentage=0.2):
+    """
+    A generator to load all the images in the training set.
+    :param split_percentage: The percentage of data to use for testing.
+    :return: Yields (label, image) tuples of String, Pillow.Image.Image
+    """
+    train, test = test_train_split(split_percentage)
+
+    for file in train:
+        for label, image in load_gnt_file(file):
+            yield label, image
+
+
+def test_set(split_percentage=0.2):
+    """
+        A generator to load all the images in the testing set. Use this during training to verify models.
+        :param split_percentage: The percentage of data to use for testing.
+        :return: Yields (label, image) tuples of String, Pillow.Image.Image
+        """
+    train, test = test_train_split(split_percentage)
+
+    for file in test:
+        for label, image in load_gnt_file(file):
+            yield label, image
+
+
+def validation_set():
+    """
+    A generator to load all the images in the validation set.
+    Don't touch this until you are evaluating the final model.
+    If you use this to inform your model building, you will have a much higher chance of overfitting.
+    :return: Yields (label, image) tuples of String, Pillow.Image.Image
+    """
+    for dataset in TESTING_SETS:
+        for label, image in load_gnt_dir(dataset):
+            yield label, image
 
 
 def get_all_raw():
