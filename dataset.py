@@ -37,6 +37,10 @@ DATASETS = {
 TRAINING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "train"]
 TESTING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "test"]
 
+"""
+DATASET DOWNLOADING
+"""
+
 
 class DLProgress(tqdm):
     """ Class to show progress on dataset download """
@@ -70,7 +74,8 @@ def get_datasets():
             if was_error:
                 print("\nThis recognizer is trained by the CASIA handwriting database.")
                 print("If the download doesn't work, you can get the files at %s" % DATASETS[dataset]["url"])
-                print("If you have download problems, wget may be effective at downloading because of download resuming.")
+                print("If you have download problems, "
+                      "wget may be effective at downloading because of download resuming.")
                 success = False
 
     return success
@@ -122,15 +127,20 @@ def load_datasets(purpose="train"):
         for image, label in load_gnt_dir(path):
             yield image, label
 
+"""
+GNT FILE READERS
+"""
 
-def load_gnt_dir(dataset_path):
+
+def load_gnt_dir(dataset_path, preprocess=no_processing):
     """
     Load a directory of gnt files. Yields the image and label in tuples.
     :param dataset_path: The directory to search in.
+    :param preprocess: A preprocessing function. Default does nothing. 
     :return:  Yields (image, label) pairs
     """
     for path in glob.glob(dataset_path + "/*.gnt"):
-        for image, label in load_gnt_file(path):
+        for image, label in load_gnt_file(path, preprocess=preprocess):
             yield image, label
 
 
@@ -164,27 +174,35 @@ def load_gnt_file(filename, preprocess=no_processing):
 
             yield processed_image, label
 
+"""
+FILE COUNTERS
+"""
 
-def dataset_count(purpose="train"):
+
+def files_for_purpose(purpose="train"):
     """
     Get the file count for a particular set of datasets. Used for a test-train split.
     :param purpose: Which set to use
-    :return: The count of files in the dataset.
     """
     count = 0
     for dataset in [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == purpose]:
-        count += data_count(dataset)
+        count += files_in_dataset(dataset)
     return count
 
 
-def data_count(dataset):
+def files_in_dataset(dataset):
     """
     Gets the count of files in an individual dataset.
     :param dataset: The path of the dataset.
     :return: The count
     """
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
     path = dataset + "/"
     return len([name for name in listdir(path)])
+
+"""
+SET GENERATORS
+"""
 
 
 def test_train_split(split_percentage=0.2):
@@ -196,10 +214,10 @@ def test_train_split(split_percentage=0.2):
     train_files = []
     test_files = []
 
-    #TODO implement k-fold cross-validation
+    # TODO implement k-fold cross-validation
 
     for dataset in TRAINING_SETS:
-        count = data_count(dataset)
+        count = files_in_dataset(dataset)
         training_count = ceil((1 - split_percentage) * count)
         testing_count = count - training_count
 
@@ -217,13 +235,18 @@ def test_train_split(split_percentage=0.2):
     return train_files, test_files
 
 
-def train_set_sample_count(split_percentage=0.2):
-    train, test = test_train_split()
-    count = 0
+def train_set_counts(split_percentage=0.2):
+    train, test = test_train_split(split_percentage)
+
+    sample_count = 0
+    labels = []
+
     for file in train:
         for image, label in load_gnt_file(file):
-            count += 1
-    return count
+            sample_count += 1
+            labels.append(label)
+
+    return sample_count, set(labels)
 
 
 def train_set(split_percentage=0.2, infinite=True):
@@ -233,6 +256,8 @@ def train_set(split_percentage=0.2, infinite=True):
     :param infinite: Whether to load data infinitely. If false, loads each image once and then stops.
     :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
+
     train, test = test_train_split(split_percentage)
 
     if infinite:
@@ -252,6 +277,8 @@ def test_set(split_percentage=0.2):
         :param split_percentage: The percentage of data to use for testing.
         :return: Yields (image, label) tuples of String, Pillow.Image.Image
         """
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
+
     train, test = test_train_split(split_percentage)
 
     for file in test:
@@ -266,9 +293,15 @@ def validation_set():
     If you use this to inform your model building, you will have a much higher chance of overfitting.
     :return: Yields (image, label) tuples of String, Pillow.Image.Image
     """
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
+
     for dataset in TESTING_SETS:
         for image, label in load_gnt_dir(dataset, preprocess=process_image):
             yield image, label
+
+"""
+RAW IMAGE OUTPUTS
+"""
 
 
 def get_all_raw():
@@ -276,6 +309,8 @@ def get_all_raw():
     Used to create easily introspectable image directories of all the data.
     :return:
     """
+    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
+
     for dataset in DATASETS:
         get_raw(dataset)
 
