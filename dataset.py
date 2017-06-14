@@ -15,7 +15,7 @@ from scipy.misc import toimage
 
 from tqdm import tqdm
 
-from preprocessing import no_processing, process_image
+from preprocessing import no_processing
 
 __author__ = 'Lucas Kjaero'
 
@@ -37,10 +37,6 @@ DATASETS = {
 TRAINING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "train"]
 TESTING_SETS = [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == "test"]
 
-"""
-DATASET DOWNLOADING
-"""
-
 
 class DLProgress(tqdm):
     """ Class to show progress on dataset download """
@@ -51,6 +47,99 @@ class DLProgress(tqdm):
         self.total = total_size
         self.update((block_num - self.last_block) * block_size)
         self.last_block = block_num
+
+
+class CASIA:
+    """
+    Class to read the dataset for all learning functions. Anything you need should be in here. 
+    Don't call other functions unless you're sure you need to.
+    """
+    def __init__(self, split_percentage=0.2, pre_processing_function=no_processing):
+        assert get_datasets() is True, "Datasets aren't properly loaded, " \
+                                       "rerun to try again or download datasets manually."
+
+        sample_count = 0
+        labels = []
+
+        for dataset in DATASETS:
+            for image, label in load_gnt_dir(dataset):
+                sample_count += 1
+                labels.append(label)
+
+        self.classes = set(labels)
+        self.class_count = len(self.classes)
+        self.sample_count = sample_count
+
+        self.split_percentage = split_percentage
+        self.train_files, self.test_files = test_train_split(self.split_percentage)
+
+        self.pre_processing_function = pre_processing_function
+
+    def train_set(self, batch_size=100):
+        """
+        A generator to load all the images in the training set. Loads data infinitely.
+        :param batch_size: The number of samples to return at once. 
+        :return: Yields batches of (image, label) tuples of String, Pillow.Image.Image
+        """
+        batch = []
+
+        while True:
+            for file in self.train_files:
+                for image, label in load_gnt_file(file, preprocess=self.pre_processing_function):
+                    batch.append([image, label])
+
+                    if len(batch) >= batch_size:
+                        yield batch
+                        batch = []
+
+    def test_set(self):
+        """
+        A generator to load all the images in the testing set. Use this during training to verify models.
+        :return: Yields (image, label) tuples of String, Pillow.Image.Image
+        """
+        for file in self.test_files:
+            for image, label in load_gnt_file(file, preprocess=self.pre_processing_function):
+                yield image, label
+
+    def validation_set(self):
+        """
+        A generator to load all the images in the validation set.
+        Don't touch this until you are evaluating the final model.
+        If you use this to inform your model building, you will have a much higher chance of overfitting.
+        :return: Yields (image, label) tuples of String, Pillow.Image.Image
+        """
+        for dataset in TESTING_SETS:
+            for image, label in load_gnt_dir(dataset, preprocess=self.pre_processing_function):
+                yield image, label
+
+    def get_all_raw(self):
+        """
+        Used to create easily introspectable image directories of all the data.
+        :return:
+        """
+        for dataset in DATASETS:
+            # Create a folder to hold the dataset
+            prefix_path = "raw/" + dataset
+            if not isdir(prefix_path):
+                makedirs(prefix_path)
+
+            for image, label in load_gnt_dir(dataset):
+                assert type(image) == "PIL.Image.Image", "image is not the correct type. "
+
+                # Make sure there's a folder for the class label.
+                label_path = prefix_path + "/" + label
+                if not isdir(label_path):
+                    makedirs(label_path)
+
+                image.save(label_path + "/%s.jpg" % clock())
+
+"""
+Below here is implementation functions for CASIA. None of these should need to be called by themselves.
+"""
+
+"""
+Dataset Downloaders
+"""
 
 
 def get_datasets():
@@ -111,22 +200,6 @@ def get_dataset(dataset):
 
     return was_error
 
-
-def load_datasets(purpose="train"):
-    """
-    Generator loading all images in the dataset for the given purpose. Uses training data if nothing specified.
-    :param purpose: Data purpose. Options are "train" and "test". Default is train.
-    :return: Yields (image, label) tuples. Pillow.Image.Image
-    """
-    # Just make sure the data is there. If not, this will download them.
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-
-    paths = [path for path in DATASETS if DATASETS[path]["purpose"] == purpose]
-
-    for path in paths:
-        for image, label in load_gnt_dir(path):
-            yield image, label
-
 """
 GNT FILE READERS
 """
@@ -174,34 +247,9 @@ def load_gnt_file(filename, preprocess=no_processing):
 
             yield processed_image, label
 
-"""
-FILE COUNTERS
-"""
-
-
-def files_for_purpose(purpose="train"):
-    """
-    Get the file count for a particular set of datasets. Used for a test-train split.
-    :param purpose: Which set to use
-    """
-    count = 0
-    for dataset in [dataset for dataset in DATASETS if DATASETS[dataset]["purpose"] == purpose]:
-        count += files_in_dataset(dataset)
-    return count
-
-
-def files_in_dataset(dataset):
-    """
-    Gets the count of files in an individual dataset.
-    :param dataset: The path of the dataset.
-    :return: The count
-    """
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-    path = dataset + "/"
-    return len([name for name in listdir(path)])
 
 """
-SET GENERATORS
+Test-Train Split
 """
 
 
@@ -217,7 +265,7 @@ def test_train_split(split_percentage=0.2):
     # TODO implement k-fold cross-validation
 
     for dataset in TRAINING_SETS:
-        count = files_in_dataset(dataset)
+        count = len([name for name in listdir(dataset)])
         training_count = ceil((1 - split_percentage) * count)
         testing_count = count - training_count
 
@@ -233,116 +281,3 @@ def test_train_split(split_percentage=0.2):
         test_files.extend(test)
 
     return train_files, test_files
-
-
-def train_set_counts(split_percentage=0.2):
-    train, test = test_train_split(split_percentage)
-
-    sample_count = 0
-    labels = []
-
-    for file in train:
-        for image, label in load_gnt_file(file):
-            sample_count += 1
-            labels.append(label)
-
-    return sample_count, set(labels)
-
-
-def train_set(split_percentage=0.2, infinite=True):
-    """
-    A generator to load all the images in the training set. Loads data infinitely.
-    :param split_percentage: The percentage of data to use for testing.
-    :param infinite: Whether to load data infinitely. If false, loads each image once and then stops.
-    :return: Yields (image, label) tuples of String, Pillow.Image.Image
-    """
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-
-    train, test = test_train_split(split_percentage)
-
-    if infinite:
-        while True:
-            for file in train:
-                for image, label in load_gnt_file(file, preprocess=process_image):
-                    yield image, label
-    else:
-        for file in train:
-            for image, label in load_gnt_file(file, preprocess=process_image):
-                yield image, label
-
-
-def test_set(split_percentage=0.2):
-    """
-        A generator to load all the images in the testing set. Use this during training to verify models.
-        :param split_percentage: The percentage of data to use for testing.
-        :return: Yields (image, label) tuples of String, Pillow.Image.Image
-        """
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-
-    train, test = test_train_split(split_percentage)
-
-    for file in test:
-        for image, label in load_gnt_file(file, preprocess=process_image):
-            yield image, label
-
-
-def validation_set():
-    """
-    A generator to load all the images in the validation set.
-    Don't touch this until you are evaluating the final model.
-    If you use this to inform your model building, you will have a much higher chance of overfitting.
-    :return: Yields (image, label) tuples of String, Pillow.Image.Image
-    """
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-
-    for dataset in TESTING_SETS:
-        for image, label in load_gnt_dir(dataset, preprocess=process_image):
-            yield image, label
-
-"""
-RAW IMAGE OUTPUTS
-"""
-
-
-def get_all_raw():
-    """
-    Used to create easily introspectable image directories of all the data.
-    :return:
-    """
-    assert get_datasets() is True, "Datasets aren't properly loaded, rerun to try again or download datasets manually."
-
-    for dataset in DATASETS:
-        get_raw(dataset)
-
-
-def get_raw(path):
-    """
-    Creates an easily introspectable image directory for a given dataset.
-    :param path: The dataset to get.
-    :return: None
-    """
-    for image, label in load_gnt_dir(path):
-        output_image(path, image, label)
-
-
-def output_image(prefix, image, label):
-    """
-    Exports images into files. Organized by dataset / label / image.
-    Stored in the raw directory.
-    Saves the image with a name of the current time in seconds. This is to prevent two filenames from being the same.
-    :param prefix: The name of the dataset to save the images under.
-    :param label: The character the image represents/
-    :param image: The image file.
-    :return: nothing.
-    """
-    assert type(image) == "PIL.Image.Image", "image is not the correct type. "
-
-    prefix_path = "raw/" + prefix
-    if not isdir(prefix_path):
-        makedirs(prefix_path)
-
-    label_path = prefix_path + "/" + label
-    if not isdir(label_path):
-        makedirs(label_path)
-
-    image.save(label_path + "/%s.jpg" % clock())
