@@ -8,7 +8,9 @@ __author__ = 'Lucas Kjaero'
 
 FILTERS = 75
 # TODO Make sure to keep this updated.
-INPUT_SHAPE = (SCALED_HEIGHT, SCALED_WIDTH)
+
+# The extra one is to let type inference know that the image is black and white.
+INPUT_SHAPE = (SCALED_HEIGHT, SCALED_WIDTH, 1)
 
 
 def alex_net(output_dimensions):
@@ -30,8 +32,10 @@ def alex_net(output_dimensions):
     model.add(Dense(output_dimensions, activation='relu'))
     model.add(Dense(output_dimensions, activation='relu'))
     model.add(Dense(output_dimensions, activation='softmax'))
+    print("Built model")
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    print("Compiled model")
 
     return model
 
