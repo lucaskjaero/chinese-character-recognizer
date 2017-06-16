@@ -2,7 +2,7 @@ from tensorflow.contrib.keras.python.keras.models import Sequential
 from tensorflow.contrib.keras.python.keras.layers import Dense
 from tensorflow.contrib.keras.python.keras.layers import Conv2D, MaxPooling2D
 
-from preprocessing import SCALED_HEIGHT, SCALED_WIDTH
+from preprocessing import TARGET_HEIGHT, TARGET_WIDTH
 
 __author__ = 'Lucas Kjaero'
 
@@ -10,7 +10,7 @@ FILTERS = 75
 # TODO Make sure to keep this updated.
 
 # The extra one is to let type inference know that the image is black and white.
-INPUT_SHAPE = (SCALED_HEIGHT, SCALED_WIDTH, 1)
+INPUT_SHAPE = (TARGET_HEIGHT, TARGET_WIDTH, 1)
 
 
 def alex_net(output_dimensions):

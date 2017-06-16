@@ -29,6 +29,9 @@ def display_label(label, transform=identity_function, directory=EXPLORATION_DIR)
     for path in glob.glob(base + "*.jpg"):
         pil_image = transform(Pil.open(path))
 
+        # Fix to make display work. Somehow greyscale doesn't work.
+        pil_image = pil_image.convert('RGB')
+
         image_bytes = BytesIO()
         pil_image.save(image_bytes, format="jpeg")
 
