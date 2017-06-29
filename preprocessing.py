@@ -71,6 +71,8 @@ def process_image(image):
     image_array = resize_and_letterbox(image)
 
     # Normalize between -1 and 1
-    normalized_image_array = (2 * (image_array / 256)) - 1
+    normalized_image_array = image_array / 256
 
-    return normalized_image_array
+    reshaped_image_array = normalized_image_array.reshape((TARGET_HEIGHT, TARGET_WIDTH, 1))
+
+    return reshaped_image_array
