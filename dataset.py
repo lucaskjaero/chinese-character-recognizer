@@ -86,22 +86,22 @@ class CasiaML(CASIA):
 
             if not isfile(LABELS_FILE):
                 labels_string = "".join(set(labels))
-                with open(LABELS_FILE, "w") as labels_file:
+                with open(LABELS_FILE, "w", encoding='utf8') as labels_file:
                     labels_file.write(labels_string)
 
             if not isfile(SAMPLES_FILE):
-                with open(SAMPLES_FILE, "w") as samples_file:
+                with open(SAMPLES_FILE, "w", encoding='utf8') as samples_file:
                     samples_file.write("train:%s\n" % train_samples_count)
                     samples_file.write("test:%s\n" % test_samples_count)
                     samples_file.write("validation:%s\n" % validation_samples_count)
 
         # Label count is important for one-hot encoding.
-        with open(LABELS_FILE, "r") as labels_file:
+        with open(LABELS_FILE, "r", encoding='utf8') as labels_file:
             self.classes = labels_file.read()
             self.class_count = len(self.classes)
 
         # Sample count is needed to know how many samples per epoch
-        with open(SAMPLES_FILE, "r") as samples_file:
+        with open(SAMPLES_FILE, "r", encoding='utf8') as samples_file:
             samples_data = samples_file.read().split("\n")
             self.training_sample_count = int(samples_data[0].split(":")[1])
             self.testing_sample_count = int(samples_data[1].split(":")[1])

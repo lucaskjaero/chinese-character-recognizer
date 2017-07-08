@@ -68,7 +68,7 @@ def resize_and_letterbox(image):
 
 
 def process_image(image):
-    image_array = image.resize(32, 32)
+    image_array = np.array(image.resize((32, 32)))
 
     # Normalize between -1 and 1
     normalized_image_array = image_array / 256
