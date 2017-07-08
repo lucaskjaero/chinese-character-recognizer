@@ -119,9 +119,5 @@ competition-gnt.zip
 # Staging area for unzipped samples
 raw/*
 
-# Preprocessing files
-samples.txt
-labels.txt
-
 # Tensorboard logs
 logs/*
