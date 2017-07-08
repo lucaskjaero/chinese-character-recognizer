@@ -1,6 +1,6 @@
 from math import ceil
 from os import listdir
-from os.path import expanduser
+from os.path import expanduser, isfile
 
 import numpy as np
 
@@ -9,6 +9,9 @@ from pycasia.CASIA import CASIA
 from preprocessing import no_processing
 
 __author__ = 'Lucas Kjaero'
+
+LABELS_FILE = "labels.txt"
+SAMPLES_FILE = "samples.txt"
 
 
 class CasiaML(CASIA):
@@ -29,25 +32,37 @@ class CasiaML(CASIA):
         self.training_sets = [dataset for dataset in self.datasets if self.datasets[dataset]["purpose"] == "train"]
         self.testing_sets = [dataset for dataset in self.datasets if self.datasets[dataset]["purpose"] == "test"]
 
-        # Sample count is needed to know how many samples per epoch
-        sample_count = 0
+        # Do one time preprocessing of the dataset's labels and samples.
+        if not (isfile(LABELS_FILE) and isfile(SAMPLES_FILE)):
+            sample_count = 0
+            labels = []
+
+            for dataset in self.datasets:
+                for image, label in self.load_dataset(dataset):
+                    sample_count += 1
+                    labels.append(label)
+
+            unique_labels = set(labels)
+
+            if not isfile(LABELS_FILE):
+                labels_string = "".join(unique_labels)
+                with open(LABELS_FILE, "w") as labels_file:
+                    labels_file.write(labels_string)
+
+            if not isfile(SAMPLES_FILE):
+                with open(SAMPLES_FILE, "w") as samples_file:
+                    samples_file.write(str(sample_count))
+
         # Label count is important for one-hot encoding.
-        labels = []
+        with open(LABELS_FILE, "r") as labels_file:
+            self.classes = labels_file.read()
+            self.class_count = len(self.classes)
 
-        """
-        for dataset in self.datasets:
-            for image, label in self.load_dataset(dataset):
-                sample_count += 1
-                labels.append(label)
+        # Sample count is needed to know how many samples per epoch
+        with open(SAMPLES_FILE, "r") as samples_file:
+            self.sample_count = int(samples_file.read())
 
-        self.classes = set(labels)
-        self.class_count = len(self.classes)
-        self.sample_count = sample_count
         print("Data loaded with %s samples and %s classes" % (self.sample_count, self.class_count))
-        """
-        # TODO remove after getting a proper model.
-        self.sample_count = 1346168
-        self.class_count = 3755
 
         self.split_percentage = split_percentage
         self.train_files = []
@@ -86,9 +101,10 @@ class CasiaML(CASIA):
             for file in self.train_files:
                 for image, label in self.load_gnt_file(file):
                     processed_image = self.pre_processing_function(image)
+                    one_hot_label = self.one_hot(label)
 
                     batch_x.append(processed_image)
-                    batch_y.append(label)
+                    batch_y.append(one_hot_label)
 
                     if len(batch_x) >= batch_size:
                         yield np.asarray(batch_x), np.asarray(batch_y)
@@ -116,3 +132,8 @@ class CasiaML(CASIA):
             for image, label in self.load_dataset(dataset):
                 processed_image = self.pre_processing_function(image)
                 yield processed_image, label
+
+    def one_hot(self, character):
+        one_hot_vector = np.zeros(self.class_count)
+        one_hot_vector[self.classes.index(character)] = 1
+        return one_hot_vector

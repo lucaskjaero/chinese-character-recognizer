@@ -1,4 +1,4 @@
-from dataset import CASIA
+from dataset import CasiaML
 from model import alex_net
 
 from preprocessing import process_image
@@ -9,7 +9,7 @@ BATCH_SIZE = 100
 
 
 def main():
-    dataset = CASIA(pre_processing_function=process_image)
+    dataset = CasiaML(pre_processing_function=process_image)
 
     class_count = dataset.class_count
     sample_count = dataset.sample_count
